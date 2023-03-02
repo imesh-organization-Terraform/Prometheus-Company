@@ -6,26 +6,29 @@ data:
   grafana.ini: |
     [server]
     http_port = 3000
-    root_url = %(protocol)s://%(domain)s:%(http_port)s/
-    [auth.anonymous]
-    enabled = true
-    [analytics]
-    check_for_updates = true
+    root_url = http://localhost:3000
 
-#   prometheus-datasource.yaml: |
-#     apiVersion: 1
-#     datasources:
-#       - name: Prometheus
-#         url: http://localhost:9090
-#         basicAuth: false
-#         isDefault: true
+    # [datasource.prometheus]
+    # type = Prometheus
+    # url = http://prometheus-service:9090
+    # isDefault = true
 
+  datasource.yaml: |
+    apiVersion: 1
+    datasources:
+    - name: Prometheus
+      type: prometheus
+      url: http://prometheus-service:9090
+      basicAuth: false
+      isDefault: true
 ---
 
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: grafana-deployment
+  name: grafana
+  labels:
+    app: grafana
 spec:
   replicas: 1
   selector:
@@ -44,34 +47,31 @@ spec:
         env:
         - name: GF_SECURITY_ADMIN_PASSWORD
           value: imesh
-        volumeMounts:
-        - name: grafana-config-volume
-          mountPath: /etc/grafana
         resources:
           limits:
             cpu: "0.5"
             memory: "512Mi"
+        volumeMounts:
+        - name: grafana-config-volume
+          mountPath: /etc/grafana
       volumes:
       - name: grafana-config-volume
         configMap:
           name: grafana-config
-
-      # volumes:
-      # - name: grafana-config
-      #   configMap:
-      #     name: grafana-configmap
-      #     items:
-      #     - key: grafana.ini
-      #       path: grafana.ini
-      #     - key: prometheus-datasource.yaml
-      #       path: provisioning/datasources/prometheus.yaml
+          items:
+          - key: grafana.ini
+            path: grafana.ini
+          - key: datasource.yaml
+            path: provisioning/datasources/datasource.yaml
 
 ---
 
 apiVersion: v1
 kind: Service
 metadata:
-  name: grafana
+  name: grafana-service
+  labels:
+    app: grafana
 spec:
   selector:
     app: grafana
@@ -79,4 +79,4 @@ spec:
   - name: http
     port: 3000
     targetPort: 3000
-  type: NodePort
+  type: ClusterIP

@@ -1,0 +1,10 @@
+replicaCount: 1
+
+image:
+  repository: prom/node-exporter
+  tag: latest
+
+service:
+  type: ClusterIP
+  port: 9100
+  targetPort: 9100
